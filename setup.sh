@@ -27,17 +27,25 @@ curl -fsSL https://raw.githubusercontent.com/nmbrthirteen/podcli/main/install.sh
 command -v podcli >/dev/null 2>&1 || { echo "FAIL: podcli not on PATH"; RC=1; exit $RC; }
 podcli --version
 
-step "2. Provision runtimes + models (best-effort, time-boxed 20m)"
-# This can hang on large FFmpeg/Python runtime downloads. It is safe to let it
-# fail/timeout; step 3 makes the system interpreters sufficient.
-timeout 1200 podcli setup || true
-if [ -f "$HOME/.local/share/podcli/models/ggml-base.bin" ]; then
-  echo "Whisper model present: $(stat -c%s "$HOME/.local/share/podcli/models/ggml-base.bin" 2>/dev/null) bytes"
-else
-  echo "Whisper model missing — fetching ggml-base.bin directly..."
+step "2. Provision runtimes + models (time-boxed; FFmpeg fetch often hangs)"
+# `podcli setup` downloads the whisper model (fast) then a managed FFmpeg/Python
+# runtime whose host (johnvansickle.com) frequently resets the connection here,
+# hanging indefinitely. We time-box it tightly: 90s is enough for the model; if
+# it's still going, kill it and fetch the model directly. System ffmpeg covers
+# transcoding; system python3 covers the backend (step 3). Do NOT let this block
+# steps 3-5.
+echo "  trying podcli setup (capped at 90s)..."
+if timeout 90 podcli setup 2>&1 | grep -E 'model:|done|error|interrupted' | tail -8; then :; fi
+# whatever happened, ensure the model is present
+if [ ! -s "$HOME/.local/share/podcli/models/ggml-base.bin" ]; then
+  echo "  model missing or partial — fetching ggml-base.bin directly..."
   mkdir -p "$HOME/.local/share/podcli/models"
-  curl -fL https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin \
-    -o "$HOME/.local/share/podcli/models/ggml-base.bin" || echo "WARN: model fetch failed"
+  curl -fL --retry 3 https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin \
+    -o "$HOME/.local/share/podcli/models/ggml-base.bin" \
+    || echo "  WARN: model fetch failed; transcription may fall back to system whisper"
+fi
+if [ -s "$HOME/.local/share/podcli/models/ggml-base.bin" ]; then
+  echo "  Whisper model present: $(stat -c%s "$HOME/.local/share/podcli/models/ggml-base.bin" 2>/dev/null) bytes"
 fi
 
 step "3. Install backend Python deps into system python3"
@@ -57,9 +65,16 @@ python3 -c \
 step "4. Smoke-test the web Studio (localhost:3847)"
 podcli ui >/tmp/podcli-ui.log 2>&1 &
 UI_PID=$!
-sleep 6
-code=$(curl -sS -o /dev/null -w '%{http_code}' http://localhost:3847/ 2>/dev/null || echo "NONE")
-echo "Studio HTTP: $code"
+# Poll up to ~25s: the Studio can take ~10s to come up cold (downloads remotion
+# bundles on first launch). A fixed short sleep will false-negative.
+code=000
+for i in $(seq 1 25); do
+  sleep 1
+  code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 2 http://localhost:3847/ 2>/dev/null || echo "000")
+  [ "$code" = "200" ] && break
+done
+echo "Studio HTTP: $code (${i}s waited)"
+[ "$code" = "200" ] || echo "  WARN: Studio not reachable in 25s — see /tmp/podcli-ui.log; CLI/MCP still work"
 kill "$UI_PID" 2>/dev/null || true
 wait "$UI_PID" 2>/dev/null || true
 
