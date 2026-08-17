@@ -144,6 +144,27 @@ Verify all deps import:
 python3 -c "import cv2,numpy,onnxruntime,PIL,questionary,dotenv,yt_dlp,googleapiclient,google.oauth2; print('backend deps OK')"
 ```
 
+### 3b. (Recommended) Install yt-dlp as a standalone binary
+
+`yt-dlp` is already pulled in by step 3 (the pip package), but podcli shells out
+to the `yt-dlp` on PATH for YouTube downloads, and the pip-shim can drift with
+your Python env. A standalone binary in `/usr/local/bin` is more robust and is
+the method the project recommends:
+
+```sh
+sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp \
+  -o /usr/local/bin/yt-dlp
+sudo chmod a+rx /usr/local/bin/yt-dlp
+yt-dlp --version
+```
+
+This fetches the Linux standalone binary (zipapp with a shebang; works on x86_64
+and arm64) and makes it executable system-wide, independent of pip.
+
+> If you are not root, keep `sudo`. In containers/CI where you run as root,
+> `sudo` is a no-op harmlessly. If `sudo` isn't available at all, drop it and
+> write to a PATH dir you own (e.g. `~/.local/bin/yt-dlp`) plus the `chmod`.
+
 ### 4. Smoke-test the web Studio
 
 ```sh

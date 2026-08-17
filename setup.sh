@@ -62,6 +62,19 @@ python3 -c \
   "import cv2,numpy,onnxruntime,PIL,questionary,dotenv,yt_dlp,googleapiclient,google.oauth2; print('backend deps OK')" \
   || { echo "WARN: some backend deps did not import"; }
 
+step "3b. Install yt-dlp as a standalone binary (more robust than the pip shim)"
+# podcli shells out to `yt-dlp` on PATH for YouTube downloads. Put a standalone
+# binary in /usr/local/bin so it survives Python-env churn.
+SUDO=""
+command -v sudo >/dev/null 2>&1 && [ "$(id -u)" -ne 0 ] && SUDO=sudo
+DEST_DIR=/usr/local/bin
+[ -d "$DEST_DIR" ] && [ -w "$DEST_DIR" ] || DEST_DIR="$HOME/.local/bin"   # fall back if /usr/local/bin not writable
+mkdir -p "$DEST_DIR"
+$SUDO curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp \
+  -o "$DEST_DIR/yt-dlp" || { echo "WARN: yt-dlp binary download failed (pip pkg from step 3 still works)"; }
+$SUDO chmod a+rx "$DEST_DIR/yt-dlp" 2>/dev/null
+command -v yt-dlp >/dev/null 2>&1 && echo "yt-dlp: $(yt-dlp --version 2>&1 | head -1)" || echo "yt-dlp: install failed - pip pkg remains as fallback"
+
 step "4. Smoke-test the web Studio (localhost:3847)"
 podcli ui >/tmp/podcli-ui.log 2>&1 &
 UI_PID=$!
