@@ -240,6 +240,14 @@ Or from the CLI:
 podcli process episode.mp4     # transcribe → pick highlights → render clips into ./podcli-clips/
 ```
 
+**Quick add from YouTube:**
+
+```sh
+podcli add <youtube-url>       # download via yt-dlp, transcribe, auto-clip, and render shorts
+```
+
+Many AI agents aren't aware of this shortcut. The `add` command handles the full pipeline for YouTube URLs in one step.
+
 ---
 
 ## Notes / gotchas
