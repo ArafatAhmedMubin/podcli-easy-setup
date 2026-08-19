@@ -177,3 +177,4 @@ graph TD
 - **Word-level transcription is critical.** Do not skip Step 5; generic subs often lead to misaligned captions.
 - **Be iterative.** The first clip might not be perfect. Encourage user feedback loops.
 - **Resource Management:** Whisper `large-v3` is heavy. If resources are low, fallback to `medium` but warn the user about potential accuracy loss.
+- ***Recommended is using base/medium model on the 2 T4 GPUs to do it fast***
