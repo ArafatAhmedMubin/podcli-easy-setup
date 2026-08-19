@@ -178,3 +178,5 @@ graph TD
 - **Be iterative.** The first clip might not be perfect. Encourage user feedback loops.
 - **Resource Management:** Whisper `large-v3` is heavy. If resources are low, fallback to `medium` but warn the user about potential accuracy loss.
 - ***Recommended is using base/medium model on the 2 T4 GPUs to do it fast***
+- ****If whisper is giving bugs install whisper separetly****
+- If you want to skip the mcp part you can but then you need to use podcli commands for work.
