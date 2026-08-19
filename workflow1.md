@@ -160,7 +160,7 @@ graph TD
     F -->|Yes| H[Use Existing Subs]
     G --> I
     H --> I[Identify Best Clip Segment]
-    I --> J[Extract Clip (ffmpeg)]
+    I --> J[Extract Clip ffmpeg]
     J --> K[Whisper Word-Level Transcription on Clip]
     K --> L[Run PodCLI with Style Profile]
     L --> M[Show Result to User]
@@ -170,6 +170,7 @@ graph TD
     N -->|Yes| P[Save & Cleanup]
     P --> Q[End]
 ```
+
 
 ## Notes for AI Agents
 - **Always prioritize the reference style.** The goal is to mimic the user's desired aesthetic, not just process video.
